@@ -1,0 +1,5 @@
+---
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeComma
+PointerAlignment: Left
+...
