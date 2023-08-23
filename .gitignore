@@ -1,0 +1,8 @@
+# Build folder
+build
+
+# clangd cache
+.cache
+
+# Conan generated file
+CMakeUserPresets.json
