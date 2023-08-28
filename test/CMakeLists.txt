@@ -4,6 +4,11 @@ target_sources(tests PRIVATE
     invoke/test_cpp_from_py.cpp
 )
 
+add_test(
+    NAME unit_tests
+    COMMAND tests
+)
+
 python3_add_library(module1)
 target_link_libraries(module1 PRIVATE phynal)
 target_sources(module1 PRIVATE
@@ -13,4 +18,12 @@ target_sources(module1 PRIVATE
 # library name, not necessarily the target name.
 target_compile_definitions(module1 PRIVATE
     PHYNAL_MODULE_NAME=module1
+)
+
+add_test(
+    NAME test_module1
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/modules/test1.py
+)
+set_tests_properties(test_module1 PROPERTIES
+    ENVIRONMENT PYTHONPATH=$<TARGET_FILE_DIR:module1>
 )
