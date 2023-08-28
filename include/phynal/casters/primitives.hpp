@@ -60,6 +60,7 @@ struct cast_result {
         if constexpr (std::copy_constructible<T>) {
           return *std::get<1>(m_state);
         } else {
+          PyErr_SetString(PyExc_RuntimeError, "too big");
           return {}; // Copy requested, but type is not copyable
           // Note: If the given Python value had a refcount of 1, this should be
           // stolen earlier as a T.
@@ -71,6 +72,7 @@ struct cast_result {
       // Same as the T* case, except that we don't allow conversion to T&
       if constexpr (std::is_reference_v<AsType>) {
         if constexpr (std::same_as<AsType, T&>) {
+          PyErr_SetString(PyExc_RuntimeError, "too big");
           return {}; // Cannot convert const reference to mutable reference
         } else {
           return *std::get<2>(m_state);
@@ -79,6 +81,7 @@ struct cast_result {
         if constexpr (std::copy_constructible<T>) {
           return *std::get<2>(m_state);
         } else {
+          PyErr_SetString(PyExc_RuntimeError, "too big");
           return {}; // Copy requested, but type is not copyable
           // Note: If the given Python value had a refcount of 1, this should be
           // stolen earlier as a T.
@@ -162,28 +165,15 @@ struct caster<Integral> {
       return cast_result<Integral>::make_error();
     }
 
-    Py_DECREF(obj);
+    if constexpr (sizeof(Integral) < sizeof(cast_value)) {
+      if (cast_value > std::numeric_limits<Integral>::max()) {
+        PyErr_SetString(PyExc_RuntimeError, "too big");
+        return cast_result<Integral>::make_error();
+      }
 
-    // Error stays set
-    if (PyErr_Occurred()) {
-      return cast_result<Integral>::make_error();
-    }
-
-    if constexpr (std::signed_integral<Integral>) {
-      if constexpr (sizeof(Integral) < sizeof(long)) {
-        if (cast_value > std::numeric_limits<Integral>::max()) {
-          PyErr_SetString(PyExc_RuntimeError, "too big");
-          return cast_result<Integral>::make_error();
-        }
+      if constexpr (std::signed_integral<Integral>) {
         if (cast_value < std::numeric_limits<Integral>::min()) {
           PyErr_SetString(PyExc_RuntimeError, "too small");
-          return cast_result<Integral>::make_error();
-        }
-      }
-    } else {
-      if constexpr (sizeof(Integral) < sizeof(unsigned long)) {
-        if (cast_value > std::numeric_limits<Integral>::max()) {
-          PyErr_SetString(PyExc_RuntimeError, "too big");
           return cast_result<Integral>::make_error();
         }
       }

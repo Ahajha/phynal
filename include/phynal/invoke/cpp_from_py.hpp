@@ -56,31 +56,44 @@ private:
 
     // Lazy initialize them.
     // We could potentially use single-member unions, except maybe for
-    // references.
-    std::tuple<tl::optional<cast_result<Args>>...> cast_args;
+    // references. Would make destruction difficult.
+    std::tuple<tl::optional<Args>...> cast_args;
 
-    auto parse_arg = []<class Arg>(PyObject* in,
-                                   tl::optional<cast_result<Arg>>& out) {
-      out.emplace(caster<Arg>::to_cpp(in));
-      return !out->is_error();
+    auto parse_arg = []<class Arg>(PyObject* in, tl::optional<Arg>& out) {
+      auto cast = caster<Arg>::to_cpp(in).template as<Arg>();
+
+      assert((bool)PyErr_Occurred() == !(bool)cast);
+
+      if (cast) {
+        out.emplace(*std::move(cast));
+        return true;
+      } else {
+        return false;
+      }
     };
 
     if (!(... &&
           parse_arg(collected_args[Indexes], std::get<Indexes>(cast_args)))) {
       // Error already set, just return nullptr.
+      assert(PyErr_Occurred());
       return nullptr;
     }
 
     // Actually call the function
 
-    auto result = std::invoke(Func, std::move(std::get<Indexes>(cast_args))
-                                        .value()
-                                        .template as<Args>()
-                                        .value()...);
+    if constexpr (std::is_void_v<Ret>) {
+      std::invoke(Func, std::move(std::get<Indexes>(cast_args)).value()...);
 
-    // and then we need to cast the result to Python
+      Py_INCREF(Py_None);
+      return Py_None;
+    } else {
+      auto result =
+          std::invoke(Func, std::move(std::get<Indexes>(cast_args)).value()...);
 
-    return caster<Ret>::to_py(std::move(result));
+      // and then we need to cast the result to Python
+
+      return caster<Ret>::to_py(std::move(result));
+    }
   }
 };
 
