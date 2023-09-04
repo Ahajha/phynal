@@ -22,7 +22,7 @@ target_compile_definitions(module1 PRIVATE
 
 add_test(
     NAME test_module1
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/modules/test1.py
+    COMMAND ${Python3_EXECUTABLE} -m unittest discover ${CMAKE_CURRENT_SOURCE_DIR}/modules/
 )
 set_tests_properties(test_module1 PROPERTIES
     ENVIRONMENT PYTHONPATH=$<TARGET_FILE_DIR:module1>

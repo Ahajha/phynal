@@ -1,22 +1,41 @@
-from module1 import add, identity, widen, narrow, nothing
+import unittest
+from module1 import add, identity, identity_long, nothing
 
-print(identity(5))
 
-print(identity(9999999))
-print(identity(9999999))
+class TestPrimitiveCasters(unittest.TestCase):
+    def _check_identity(self, func, value):
+        self.assertEqual(func(value), value)
 
-print(identity(2**31 - 1))  # Passes
-identity(2**31)  # Segfault
+    def test_identity(self):
+        for i in range(30):
+            self._check_identity(identity, i)
 
-print(narrow(2**31 - 1))  # Passes
-print(narrow(2**31))  # Passes
+        # Check on edges of input domain
+        self._check_identity(identity, 2**31 - 1)
+        self._check_identity(identity, -2**31)
 
-print(widen(2**31 - 1))  # Passes
-print(widen(2**31))  # Segfault
+        # Too large for int, but small enough for long
+        self.assertRaises(OverflowError, identity, 2**31)
+        # Too large for long
+        self.assertRaises(OverflowError, identity, 2**69)
+        # Too small for int, 'large' enough for long
+        self.assertRaises(OverflowError, identity, -2**31)
 
-nothing(2**31 - 1)
-nothing(2**31)  # Segfault
+    def test_identity(self):
+        for i in range(30):
+            self._check_identity(identity, i)
 
-# print(identity(99999999999999999999))  # Fails, too big to fit in long
+        # Check on edges of input domain
+        self._check_identity(identity_long, 2**63 - 1)
+        self._check_identity(identity_long, -2**63)
 
-# add(99999999, 99999999999999) # Fails, too big to fit in long
+        # Too large for long
+        self.assertRaises(OverflowError, identity_long, 2**63)
+        # Too small for int, 'large' enough for long
+        self.assertRaises(OverflowError, identity_long, -2**63 - 1)
+
+    def test_add(self):
+        self.assertEqual(add(3, 4), 7)
+
+    def test_nothing(self):
+        self.assertIsNone(nothing(4))

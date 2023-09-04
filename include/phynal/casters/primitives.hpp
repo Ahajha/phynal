@@ -167,13 +167,15 @@ struct caster<Integral> {
 
     if constexpr (sizeof(Integral) < sizeof(cast_value)) {
       if (cast_value > std::numeric_limits<Integral>::max()) {
-        PyErr_SetString(PyExc_RuntimeError, "too big");
+        PyErr_SetString(PyExc_OverflowError,
+                        "Python int too large to convert to C integral");
         return cast_result<Integral>::make_error();
       }
 
       if constexpr (std::signed_integral<Integral>) {
         if (cast_value < std::numeric_limits<Integral>::min()) {
-          PyErr_SetString(PyExc_RuntimeError, "too small");
+          PyErr_SetString(PyExc_OverflowError,
+                          "Python int too small to convert to C integral");
           return cast_result<Integral>::make_error();
         }
       }
